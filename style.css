@@ -1,0 +1,91 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 1em;
+    text-align: center;
+}
+
+main {
+    display: flex;
+    flex-grow: 1; /* Allows main to fill available space */
+    padding: 10px;
+    gap: 10px; /* Adds space between map and controls */
+}
+
+#map-container {
+    width: 70%;
+    height: 500px; /* Default height, can be adjusted */
+    border: 1px solid #ccc;
+    background-color: #f0f0f0; /* Placeholder background */
+}
+
+#controls-panel {
+    width: 30%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    overflow-y: auto; /* In case content overflows */
+}
+
+#controls-panel h2 {
+    margin-top: 0;
+}
+
+#new-package-form div {
+    margin-bottom: 10px;
+}
+
+#new-package-form label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#new-package-form input[type="text"] {
+    width: calc(100% - 10px); /* Adjust for padding */
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#new-package-form button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#new-package-form button:hover {
+    background-color: #45a049;
+}
+
+#pending-pickups-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#pending-pickups-list li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+#pending-pickups-list li:last-child {
+    border-bottom: none;
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    padding: 0.5em;
+    text-align: center;
+    font-size: 0.8em;
+}

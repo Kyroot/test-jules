@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Package Tracking SPA</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Placeholder for Google Maps API script -->
+    <!-- <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script> -->
+</head>
+<body>
+    <header>
+        <h1>Package Tracking Dashboard</h1>
+    </header>
+
+    <main>
+        <div id="map-container">
+            <!-- Map will be rendered here -->
+        </div>
+
+        <div id="controls-panel">
+            <h2>New Package</h2>
+            <form id="new-package-form">
+                <div>
+                    <label for="package-description">Description:</label>
+                    <input type="text" id="package-description" name="package-description" required>
+                </div>
+                <div>
+                    <label for="pickup-lat">Pickup Latitude:</label>
+                    <input type="text" id="pickup-lat" name="pickup-lat" required>
+                </div>
+                <div>
+                    <label for="pickup-lng">Pickup Longitude:</label>
+                    <input type="text" id="pickup-lng" name="pickup-lng" required>
+                </div>
+                <button type="submit">Add Package</button>
+            </form>
+
+            <h2>Pending Pickups</h2>
+            <ul id="pending-pickups-list">
+                <!-- New packages will be listed here -->
+            </ul>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Package Trans</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
