@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Package Tracking SPA</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Placeholder for Google Maps API script -->
+    <!-- Google Maps API script (removed or commented out) -->
     <!-- <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script> -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 </head>
 <body>
     <header>
@@ -45,14 +46,17 @@
                             <select id="pickup-location-select" name="pickup-location-select"></select>
                         </div>
                         <div id="custom-location-fields" style="display: none;"> <!-- Initially hidden -->
+                    <!-- This is inside the <div id="custom-location-fields" style="display: none;"> -->
                             <div>
-                                <label for="pickup-lat">Pickup Latitude:</label>
-                                <input type="text" id="pickup-lat" name="pickup-lat"> <!-- Not required initially -->
+                        <label for="pickup-zip-code">Pickup ZIP Code:</label>
+                        <input type="text" id="pickup-zip-code" name="pickup-zip-code">
                             </div>
                             <div>
-                                <label for="pickup-lng">Pickup Longitude:</label>
-                                <input type="text" id="pickup-lng" name="pickup-lng"> <!-- Not required initially -->
+                        <label for="pickup-country">Country (for ZIP Code):</label>
+                        <input type="text" id="pickup-country" name="pickup-country" value="Moldova"> 
+                        <!-- Defaulting to Moldova, user can change if needed -->
                             </div>
+                    <!-- End of content for #custom-location-fields -->
                         </div>
                         <button type="submit">Add Package</button>
                     </form>
@@ -89,6 +93,7 @@
         <p>&copy; 2023 Package Trans</p>
     </footer>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="backend.js"></script>
     <script src="app.js"></script>
 </body>
