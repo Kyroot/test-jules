@@ -89,3 +89,39 @@ footer {
     text-align: center;
     font-size: 0.8em;
 }
+
+/* Tab Navigation */
+#tab-navigation {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
+.tab-button {
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    background-color: #eee;
+    cursor: pointer;
+    margin-right: 5px;
+}
+.tab-button.active {
+    background-color: #fff;
+    border-bottom-color: #fff; /* Make it look like it merges with content */
+}
+
+/* Tab Panels */
+.tab-panel {
+    /* border: 1px solid #ccc; */ /* Optional border for panels */
+    /* padding: 10px; */
+}
+
+/* Ensure main within tabs also uses flex */
+#dashboard-tab-content main, #drivers-tab-content main {
+    display: flex;
+    flex-grow: 1;
+    padding: 10px;
+    gap: 10px;
+}
+
+#driver-map-container {
+    background-color: #f0f0f0; /* Placeholder background */
+}
