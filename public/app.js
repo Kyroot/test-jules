@@ -76,7 +76,7 @@ async function handleLogout() {
 }
 // --- End Authentication related functions ---
 
-async function requestAndSendVehicleLocation() { // Renamed from requestAndSendDriverLocation
+async function requestAndSendVehicleLocation() { 
     if (currentPrincipalType !== 'vehicle') {
         return;
     }
@@ -94,7 +94,7 @@ async function requestAndSendVehicleLocation() { // Renamed from requestAndSendD
             const { latitude, longitude } = position.coords;
             console.log(`[App Location] Geolocation success: Lat: ${latitude}, Lng: ${longitude} for vehicle ${currentPrincipalInfo.vehicleId}`);
             try {
-                const response = await fetchApi('/api/vehicles/mylocation', { // Corrected API path
+                const response = await fetchApi('/api/vehicles/mylocation', { 
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ lat: latitude, lng: longitude }),
@@ -114,14 +114,13 @@ async function requestAndSendVehicleLocation() { // Renamed from requestAndSendD
                     console.log('[App Location] Updated own vehicle marker on main map.');
                 }
 
-                // If vehicle view is active and it's the current vehicle, update that map too
-                const vehiclesTab = document.getElementById('vehicles-tab-content'); // Assuming it might be renamed
-                const vehicleSelect = document.getElementById('vehicle-select'); // Assuming it might be renamed
+                const vehiclesTab = document.getElementById('vehicles-tab-content'); 
+                const vehicleSelect = document.getElementById('vehicle-select-driverview'); 
                 if (vehiclesTab && vehiclesTab.classList.contains('active') && 
                     vehicleSelect && parseInt(vehicleSelect.value) === vehicleIdToUpdate &&
-                    currentVehicleViewMarker) { // Renamed from currentDriverViewMarker
+                    currentVehicleViewMarker) { 
                     currentVehicleViewMarker.setLatLng([newLoc.lat, newLoc.lng]);
-                    if(driverMap) driverMap.panTo([newLoc.lat, newLoc.lng]); // driverMap might be vehicleMap
+                    if(driverMap) driverMap.panTo([newLoc.lat, newLoc.lng]); 
                     console.log('[App Location] Updated own marker on vehicle-specific map.');
                 }
 
@@ -169,8 +168,8 @@ async function displayAllPackages() {
     allFetchedPackages.forEach(pkg => {
         const listItem = document.createElement('li');
         let assignedVehicleIdentifier = 'N/A';
-        if (pkg.assigned_vehicle_id) { // Changed from assigned_driver_id
-            const vehicle = vehicleMarkers.find(v => v.id === pkg.assigned_vehicle_id); // Changed from driverMarkers
+        if (pkg.assigned_vehicle_id) { 
+            const vehicle = vehicleMarkers.find(v => v.id === pkg.assigned_vehicle_id); 
             assignedVehicleIdentifier = vehicle ? (vehicle.displayName || vehicle.plateNumber) : `Vehicle ID: ${pkg.assigned_vehicle_id}`;
         }
 
@@ -191,31 +190,31 @@ async function displayAllPackages() {
         if (currentPrincipalType === 'admin') {
             if (pkg.status === 'pending') {
                 const assignBtn = document.createElement('button');
-                assignBtn.textContent = 'Assign to Vehicle'; // Text changed
+                assignBtn.textContent = 'Assign to Vehicle'; 
                 assignBtn.style.marginRight = '5px';
                 assignBtn.dataset.packageId = pkg.package_id;
                 assignBtn.dataset.packageCode = pkg.unique_tracking_number;
                 assignBtn.onclick = async function() { 
                     const packageIdToAssign = this.dataset.packageId;
                     const packageCodeForPrompt = this.dataset.packageCode;
-                    const vehicleIdString = prompt(`Enter ID of vehicle for package ${packageCodeForPrompt}:`); // Prompt changed
+                    const vehicleIdString = prompt(`Enter ID of vehicle for package ${packageCodeForPrompt}:`); 
                     if (vehicleIdString) {
                         const vehicleId = parseInt(vehicleIdString);
-                        if (!isNaN(vehicleId) && vehicleMarkers.some(v => v.id === vehicleId)) { // Check vehicleMarkers
+                        if (!isNaN(vehicleId) && vehicleMarkers.some(v => v.id === vehicleId)) { 
                             try {
                                 const apiResp = await fetchApi(`/api/packages/${packageIdToAssign}`, {
                                     method: 'PUT',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ assigned_vehicle_id: vehicleId, status: 'assigned' }), // Use assigned_vehicle_id
+                                    body: JSON.stringify({ assigned_vehicle_id: vehicleId, status: 'assigned' }), 
                                 });
                                 const res = await apiResp.json();
                                 if (!apiResp.ok) throw new Error(res.error || 'API Error');
                                 alert(`Package ${packageCodeForPrompt} assigned to vehicle ${vehicleId}.`);
                                 await displayAllPackages(); 
-                                const vehicleSelectElement = document.getElementById('vehicle-select'); // Assume this exists
+                                const vehicleSelectElement = document.getElementById('vehicle-select-driverview'); 
                                 if (document.getElementById('vehicles-tab-content')?.classList.contains('active') && 
                                     vehicleSelectElement && parseInt(vehicleSelectElement.value) === vehicleId) {
-                                    await handleVehicleSelectionChange(); // This function will need renaming/refactoring
+                                    await handleVehicleSelectionChange(); 
                                 }
                             } catch (e) { alert(`Error assigning: ${e.message}`); }
                         } else { alert('Invalid Vehicle ID or vehicle not found.'); }
@@ -248,7 +247,6 @@ async function displayAllPackages() {
             listItem.appendChild(deleteBtn);
         }
 
-
         if (currentPrincipalType === 'vehicle' && 
             currentPrincipalInfo && pkg.assigned_vehicle_id && 
             pkg.assigned_vehicle_id === currentPrincipalInfo.vehicleId && 
@@ -256,21 +254,30 @@ async function displayAllPackages() {
             
             const acceptBtn = document.createElement('button');
             acceptBtn.textContent = 'Accept';
-            acceptBtn.style.marginRight = '5px';
+            acceptBtn.style.marginLeft = '5px'; 
             acceptBtn.dataset.packageId = pkg.package_id;
-            acceptBtn.onclick = async function() { 
+            acceptBtn.dataset.packageIdentifier = pkg.unique_tracking_number || `ID ${pkg.package_id}`;
+
+            acceptBtn.onclick = async function() {
                 const packageIdToUpdate = this.dataset.packageId;
+                const packageIdentifier = this.dataset.packageIdentifier;
+                console.log(`[App Vehicle Action] Attempting to ACCEPT package: ${packageIdentifier}`);
                 try {
-                    const apiResp = await fetchApi(`/api/packages/${packageIdToUpdate}`, {
+                    const response = await fetchApi(`/api/packages/${packageIdToUpdate}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'accepted_by_driver' }) // Status changed for vehicle
+                        body: JSON.stringify({ status: 'accepted_by_driver' }), 
                     });
-                    const res = await apiResp.json();
-                    if (!apiResp.ok) throw new Error(res.error || 'API Error');
-                    alert(`Package ${pkg.unique_tracking_number} accepted by vehicle.`);
+                    const result = await response.json(); 
+                    if (!response.ok) {
+                        throw new Error(result.error || `API error accepting package: ${response.status}`);
+                    }
+                    alert(`Package "${packageIdentifier}" accepted successfully.`);
                     await displayAllPackages(); 
-                } catch (e) { alert(`Error accepting: ${e.message}`); }
+                } catch (error) {
+                    console.error(`[App Vehicle Action] Failed to accept package ${packageIdToUpdate}:`, error);
+                    alert(`Error accepting package "${packageIdentifier}": ${error.message}`);
+                }
             };
             listItem.appendChild(acceptBtn);
 
@@ -278,19 +285,31 @@ async function displayAllPackages() {
             declineBtn.textContent = 'Decline';
             declineBtn.style.marginLeft = '5px';
             declineBtn.dataset.packageId = pkg.package_id;
-            declineBtn.onclick = async function() { 
+            declineBtn.dataset.packageIdentifier = pkg.unique_tracking_number || `ID ${pkg.package_id}`;
+
+            declineBtn.onclick = async function() {
                 const packageIdToUpdate = this.dataset.packageId;
+                const packageIdentifier = this.dataset.packageIdentifier;
+                console.log(`[App Vehicle Action] Attempting to DECLINE package: ${packageIdentifier}`);
+                if (!confirm(`Are you sure you want to decline package "${packageIdentifier}"?`)) {
+                    return;
+                }
                 try {
-                    const apiResp = await fetchApi(`/api/packages/${packageIdToUpdate}`, {
+                    const response = await fetchApi(`/api/packages/${packageIdToUpdate}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'declined_by_driver', assigned_vehicle_id: null }), // Unassign vehicle
+                        body: JSON.stringify({ status: 'declined_by_driver' }), 
                     });
-                    const res = await apiResp.json();
-                    if (!apiResp.ok) throw new Error(res.error || 'API Error');
-                    alert(`Package ${pkg.unique_tracking_number} declined by vehicle.`);
+                    const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error(result.error || `API error declining package: ${response.status}`);
+                    }
+                    alert(`Package "${packageIdentifier}" declined successfully.`);
                     await displayAllPackages(); 
-                } catch (e) { alert(`Error declining: ${e.message}`); }
+                } catch (error) {
+                    console.error(`[App Vehicle Action] Failed to decline package ${packageIdToUpdate}:`, error);
+                    alert(`Error declining package "${packageIdentifier}": ${error.message}`);
+                }
             };
             listItem.appendChild(declineBtn);
         }
@@ -299,7 +318,7 @@ async function displayAllPackages() {
 }
 
 
-function initMap() { // Main map for admin
+function initMap() { 
     if (typeof L === 'undefined') { console.error('[App] Leaflet not loaded.'); return; }
     const mapContainerElement = document.getElementById('map-container');
     if (!mapContainerElement) { console.error("[App] Main map container 'map-container' not found."); return; }
@@ -307,23 +326,22 @@ function initMap() { // Main map for admin
     map = L.map('map-container').setView([HQ_LOCATION.lat, HQ_LOCATION.lng], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
     addMarker(HQ_LOCATION, 'Business HQ', null, map); 
-    initializeVehicleMarkers(); // Renamed from initializeDrivers
-    // Simulating vehicle movement might still be useful for admins to see activity, or removed if API is source of truth
-    // setInterval(simulateVehicleMovement, 15000); // Renamed
+    initializeVehicleMarkers(); 
+    // setInterval(simulateVehicleMovement, 5000); // REMOVED
 }
 
-async function initVehicleMap() { // For individual vehicle view (was initDriverMap)
+async function initVehicleMap() { 
     if (typeof L === 'undefined') { console.error('[App] Leaflet not loaded.'); return; }
-    const vehicleMapContainerElement = document.getElementById('vehicle-map-container'); // Assuming ID changes
+    const vehicleMapContainerElement = document.getElementById('vehicle-map-container'); 
     if (!vehicleMapContainerElement) { console.error("[App] Vehicle map container not found."); return; }
-    if (driverMap) driverMap.remove(); // driverMap is the old name for vehicleMap instance
-    driverMap = L.map('vehicle-map-container').setView([HQ_LOCATION.lat, HQ_LOCATION.lng], 7); // Storing in driverMap for now
+    if (driverMap) driverMap.remove(); 
+    driverMap = L.map('vehicle-map-container').setView([HQ_LOCATION.lat, HQ_LOCATION.lng], 7); 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(driverMap);
     addMarker(HQ_LOCATION, 'Business HQ', null, driverMap); 
 }
 
-async function displayAdminVehicleManagement() { // Renamed from displayDriversForAdmin
-    const vehiclesUl = document.getElementById('editable-vehicles-ul'); // Assuming ID will change
+async function displayAdminVehicleManagement() { 
+    const vehiclesUl = document.getElementById('editable-vehicles-ul'); 
     if (!vehiclesUl) { return; }
     vehiclesUl.innerHTML = '<li>Loading vehicles...</li>';
     try {
@@ -333,7 +351,88 @@ async function displayAdminVehicleManagement() { // Renamed from displayDriversF
         const vehicles = data.vehicles || [];
         vehiclesUl.innerHTML = ''; 
         if (vehicles.length === 0) { vehiclesUl.innerHTML = '<li>No vehicles found. Add one.</li>'; return; }
-        vehicles.forEach(vehicle => { /* ... similar to displayDriversForAdmin but for vehicles ... */ });
+        vehicles.forEach(vehicle => { 
+            const li = document.createElement('li');
+            li.style.marginBottom = "10px"; 
+            li.style.paddingBottom = "10px";
+            li.style.borderBottom = "1px solid #eee";
+
+            let textContent = `${vehicle.display_name || vehicle.vehicle_plate_number} (ID: ${vehicle.vehicle_id})`;
+            if (vehicle.current_operator_name) textContent += ` - Operator: ${vehicle.current_operator_name}`;
+            if (vehicle.operator_contact_info) textContent += ` - Contact: ${vehicle.operator_contact_info}`;
+            if (vehicle.current_lat !== null && vehicle.current_lng !== null) {
+                 textContent += ` - Loc: (${parseFloat(vehicle.current_lat).toFixed(4)}, ${parseFloat(vehicle.current_lng).toFixed(4)})`;
+            }
+            li.appendChild(document.createTextNode(textContent));
+            
+            const editButton = document.createElement('button');
+            editButton.textContent = 'Edit';
+            editButton.style.marginLeft = '10px';
+            editButton.style.padding = '3px 8px';
+            editButton.dataset.vehicleId = vehicle.vehicle_id; 
+            editButton.dataset.plate = vehicle.vehicle_plate_number;
+            editButton.dataset.displayName = vehicle.display_name || '';
+            editButton.dataset.operatorName = vehicle.current_operator_name || '';
+            editButton.dataset.operatorContact = vehicle.operator_contact_info || '';
+            editButton.dataset.lat = vehicle.current_lat !== null ? vehicle.current_lat : '';
+            editButton.dataset.lng = vehicle.current_lng !== null ? vehicle.current_lng : '';
+
+
+            editButton.onclick = function() {
+                document.getElementById('vehicle-plate-number').value = this.dataset.plate;
+                document.getElementById('vehicle-display-name').value = this.dataset.displayName;
+                document.getElementById('vehicle-operator-name').value = this.dataset.operatorName;
+                document.getElementById('vehicle-operator-contact').value = this.dataset.operatorContact;
+                document.getElementById('vehicle-initial-lat').value = this.dataset.lat;
+                document.getElementById('vehicle-initial-lng').value = this.dataset.lng;
+                document.getElementById('vehicle-password').value = ''; 
+
+                editingVehicleId = parseInt(this.dataset.vehicleId); 
+                const formButton = document.querySelector('#new-vehicle-form button[type="submit"]');
+                formButton.textContent = 'Update Vehicle';
+                document.getElementById('new-vehicle-form').dataset.mode = 'update'; 
+                document.getElementById('vehicle-plate-number').focus(); 
+            };
+            li.appendChild(editButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.style.marginLeft = '5px';
+            deleteButton.style.backgroundColor = 'red'; 
+            deleteButton.style.color = 'white';
+            deleteButton.style.padding = '3px 8px';
+            deleteButton.dataset.vehicleId = vehicle.vehicle_id;
+            deleteButton.dataset.vehicleIdentifier = vehicle.display_name || vehicle.vehicle_plate_number;
+
+            deleteButton.onclick = async function() {
+                const vehicleIdToDelete = this.dataset.vehicleId;
+                const vehicleIdentifier = this.dataset.vehicleIdentifier;
+
+                if (!confirm(`Are you sure you want to delete vehicle "${vehicleIdentifier}" (ID: ${vehicleIdToDelete})?`)) {
+                    return;
+                }
+                try {
+                    const response = await fetchApi(`/api/vehicles/${vehicleIdToDelete}`, { method: 'DELETE' });
+                    const result = await response.json(); 
+                    if (!response.ok) throw new Error(result.error || `API error: ${response.status}`);
+                    alert(`Vehicle "${vehicleIdentifier}" deleted successfully.`);
+                    await initializeVehicleMarkers();
+                    await populateVehicleSelect();
+                    await displayAdminVehicleManagement();
+                    if (editingVehicleId === parseInt(vehicleIdToDelete)) {
+                        const form = document.getElementById('new-vehicle-form');
+                        form.reset();
+                        form.querySelector('button[type="submit"]').textContent = 'Add Vehicle';
+                        form.dataset.mode = 'add';
+                        editingVehicleId = null;
+                    }
+                } catch (error) {
+                    if (error.message !== 'Unauthorized') { console.error('Failed to delete vehicle:', error); alert(`Error deleting vehicle: ${error.message}`); }
+                }
+            };
+            li.appendChild(deleteButton);
+            vehiclesUl.appendChild(li);
+         });
     } catch (error) {
         if (error.message !== 'Unauthorized') { console.error('Error displaying vehicles:', error); vehiclesUl.innerHTML = '<li>Error loading vehicles.</li>';}
     }
@@ -352,19 +451,18 @@ function setupTabEventListeners() {
             if (targetPanel) {
                 targetPanel.style.display = 'block'; targetPanel.classList.add('active');
                 if (targetTabId === 'dashboard-tab-content' && map) map.invalidateSize();
-                else if (targetTabId === 'vehicles-tab-content') { // Changed from drivers-tab-content
-                    if (!driverMap && typeof initVehicleMap === 'function') await initVehicleMap(); // driverMap is vehicleMap
+                else if (targetTabId === 'vehicles-tab-content') { 
+                    if (!driverMap && typeof initVehicleMap === 'function') await initVehicleMap(); 
                     else if (driverMap) driverMap.invalidateSize();
-                    if (typeof populateVehicleSelect === 'function') await populateVehicleSelect(); // Renamed
-                    const vehicleSelectElement = document.getElementById('vehicle-select');
+                    if (typeof populateVehicleSelect === 'function') await populateVehicleSelect(); 
+                    const vehicleSelectElement = document.getElementById('vehicle-select-driverview');
                     if (currentPrincipalType === 'vehicle' && currentPrincipalInfo?.vehicleId) {
                         if(vehicleSelectElement) {
                             vehicleSelectElement.value = currentPrincipalInfo.vehicleId;
-                            await handleVehicleSelectionChange(); // Renamed
-                            // vehicleSelectElement.disabled = true; 
+                            await handleVehicleSelectionChange(); 
                         }
                     } else if (vehicleSelectElement?.value) { 
-                        await handleVehicleSelectionChange(); // Renamed
+                        await handleVehicleSelectionChange(); 
                     }
                 } else if (targetTabId === 'all-packages-tab-content') {
                     if (typeof displayAllPackages === 'function') await displayAllPackages();
@@ -384,7 +482,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentPrincipalInfo && currentPrincipalInfo.type) {
         currentPrincipalType = currentPrincipalInfo.type;
         console.log(`[App Init] Principal type: ${currentPrincipalType}. Full info:`, currentPrincipalInfo);
-
         const welcomeMsgElement = document.getElementById('user-welcome-message');
         if (welcomeMsgElement) {
             if (currentPrincipalType === 'admin' && currentPrincipalInfo.username) {
@@ -403,11 +500,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const overallDashboardTabButton = document.querySelector('.tab-button[data-tab="dashboard-tab-content"]');
     const overallDashboardPanel = document.getElementById('dashboard-tab-content');
-    const vehiclesTabButton = document.querySelector('.tab-button[data-tab="vehicles-tab-content"]'); // Renamed
-    const vehiclesPanel = document.getElementById('vehicles-tab-content'); // Renamed
+    const vehiclesTabButton = document.querySelector('.tab-button[data-tab="vehicles-tab-content"]'); 
+    const vehiclesPanel = document.getElementById('vehicles-tab-content'); 
     const allPackagesTabButton = document.querySelector('.tab-button[data-tab="all-packages-tab-content"]');
     const controlsPanel = document.getElementById('controls-panel'); 
-    const vehicleManagementSection = document.getElementById('vehicle-management-section'); // Renamed
+    const vehicleManagementSection = document.getElementById('vehicle-management-section'); 
 
     document.querySelectorAll('.tab-panel').forEach(panel => panel.style.display = 'none');
     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -416,24 +513,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (overallDashboardTabButton) overallDashboardTabButton.style.display = 'none';
         if (controlsPanel) controlsPanel.style.display = 'none'; 
         if (vehicleManagementSection) vehicleManagementSection.style.display = 'none';
-        // All Packages tab might be visible for vehicles, or hidden based on requirements. Assuming visible for now.
-        // if (allPackagesTabButton) allPackagesTabButton.style.display = 'none'; 
+        if (allPackagesTabButton) allPackagesTabButton.style.display = ''; 
 
-        if (vehiclesTabButton && vehiclesPanel) { // Default to Vehicles View for vehicles
+        if (vehiclesTabButton && vehiclesPanel) { 
             vehiclesTabButton.classList.add('active');
             vehiclesPanel.style.display = 'block'; vehiclesPanel.classList.add('active');
             if (!driverMap && typeof initVehicleMap === 'function') await initVehicleMap(); 
             else if (driverMap) driverMap.invalidateSize();
             if (typeof populateVehicleSelect === 'function') await populateVehicleSelect(); 
             if (currentPrincipalInfo && currentPrincipalInfo.vehicleId) {
-                const vehicleSelect = document.getElementById('vehicle-select');
+                const vehicleSelect = document.getElementById('vehicle-select-driverview');
                 if (vehicleSelect) {
                     vehicleSelect.value = currentPrincipalInfo.vehicleId;
                     await handleVehicleSelectionChange(); 
-                    // vehicleSelect.disabled = true; 
+                    vehicleSelect.disabled = true; 
                 }
             }
+        } else if (allPackagesTabButton && document.getElementById('all-packages-tab-content')) { 
+             allPackagesTabButton.classList.add('active');
+             document.getElementById('all-packages-tab-content').style.display = 'block';
+             document.getElementById('all-packages-tab-content').classList.add('active');
+             if(typeof displayAllPackages === 'function') await displayAllPackages();
         }
+
+
     } else { // Admin
         if (overallDashboardTabButton && overallDashboardPanel) {
             overallDashboardTabButton.style.display = ''; 
@@ -453,8 +556,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentPrincipalType === 'admin') { 
             if (overallDashboardPanel?.classList.contains('active')) {
                 if (typeof populatePickupLocationDropdown === 'function') await populatePickupLocationDropdown();
-                // if (typeof displayAdminVehicleManagement === 'function') await displayAdminVehicleManagement(); // Will be called by specific tab logic
-                // displayAllPackages is called when its tab is activated.
+                if (typeof displayAdminVehicleManagement === 'function') await displayAdminVehicleManagement();
             }
         } else if (currentPrincipalType === 'vehicle') {
             requestAndSendVehicleLocation(); 
@@ -462,30 +564,149 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.vehicleLocationIntervalId = setInterval(requestAndSendVehicleLocation, 3 * 60 * 1000); 
             console.log('[App Init] Periodic location update interval started for vehicle.');
         }
+        if (document.getElementById('all-packages-tab-content')?.classList.contains('active')) {
+           if (typeof displayAllPackages === 'function') await displayAllPackages();
+        }
     }, 0);
 
-    const vehicleSelect = document.getElementById('vehicle-select'); // Renamed from driverSelect
+    const vehicleSelect = document.getElementById('vehicle-select-driverview'); 
     if (vehicleSelect) {
-        vehicleSelect.addEventListener('change', handleVehicleSelectionChange); // Renamed
+        vehicleSelect.addEventListener('change', handleVehicleSelectionChange); 
     }
     
     const newPackageForm = document.getElementById('new-package-form');
-    if (newPackageForm && currentPrincipalType === 'admin') { // Only admins can create packages
+    if (newPackageForm && currentPrincipalType === 'admin') { 
         newPackageForm.addEventListener('submit', async function(event) { 
             event.preventDefault();
-            // ... (rest of newPackageForm logic, ensure it uses assigned_vehicle_id)
-            // Example snippet for the body part:
-            // body: JSON.stringify({ ...packagePayload, assigned_vehicle_id: someVehicleIdIfAssignedAtCreation })
+            const descriptionInput = document.getElementById('package-description');
+            const recipientNameInput = document.getElementById('recipient-name');
+            const deliveryAddressInput = document.getElementById('delivery-address');
+            const pickupLocationSelect = document.getElementById('pickup-location-select');
+            const packagePayload = {
+                description: descriptionInput.value.trim(),
+                recipientName: recipientNameInput.value.trim(),
+                deliveryAddress: deliveryAddressInput.value.trim(),
+                number_abroad: document.getElementById('package-number-abroad')?.value.trim() || null,
+                local_number: document.getElementById('package-local-number')?.value.trim() || null,
+                weight_kg: document.getElementById('package-weight-kg')?.value ? parseFloat(document.getElementById('package-weight-kg').value) : null,
+                direction: document.getElementById('package-direction')?.value.trim() || null, 
+                sender_name: document.getElementById('package-sender-name')?.value.trim() || "Admin Self" 
+            };
+            if (!packagePayload.recipientName || !packagePayload.deliveryAddress || !packagePayload.direction || !packagePayload.sender_name) {
+                alert('Recipient Name, Delivery Address, Direction, and Sender Name are required.'); return;
+            }
+            if (packagePayload.weight_kg !== null && isNaN(packagePayload.weight_kg)) {
+                alert('Weight must be a valid number.'); return;
+            }
+            const formElements = newPackageForm.querySelectorAll('input, button, select');
+            const reEnableForm = () => formElements.forEach(el => el.disabled = false);
+            formElements.forEach(el => el.disabled = true);
+            const selectedLocationId = pickupLocationSelect.value;
+            if (selectedLocationId === 'custom') {
+                const zipCodeInput = document.getElementById('pickup-zip-code');
+                const countryInput = document.getElementById('pickup-country');
+                const zipCode = zipCodeInput.value.trim();
+                const country = countryInput.value.trim();
+                if (!zipCode) { alert('Please enter a ZIP Code for custom location.'); zipCodeInput.focus(); reEnableForm(); return; }
+                packagePayload.pickup_zip_code = zipCode;
+                packagePayload.pickup_country = country;
+                packagePayload.pickup_address_details = `Custom ZIP: ${zipCode}, ${country}`;
+            } else {
+                const numericLocationId = parseInt(selectedLocationId);
+                const selectedLoc = currentPredefinedLocations.find(loc => loc.location_id === numericLocationId); 
+                if (!selectedLoc || selectedLoc.lat === undefined || selectedLoc.lng === undefined) {
+                    alert('Selected predefined location is missing coordinate data or not found.'); reEnableForm(); return;
+                }
+                packagePayload.pickup_lat = parseFloat(selectedLoc.lat);
+                packagePayload.pickup_lng = parseFloat(selectedLoc.lng);
+                packagePayload.pickup_address_details = selectedLoc.name;
+            }
+            try {
+                const response = await fetchApi('/api/packages', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(packagePayload)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || `API error: ${response.status} - ${result.details || 'Failed to create package'}`);
+                alert(`Package created successfully! Tracking Number: ${result.unique_tracking_number}`);
+                newPackageForm.reset(); 
+                if (currentPredefinedLocations && currentPredefinedLocations.length > 0) {
+                    pickupLocationSelect.value = currentPredefinedLocations[0].location_id; 
+                } else { pickupLocationSelect.value = 'custom'; }
+                pickupLocationSelect.dispatchEvent(new Event('change')); 
+                if (document.getElementById('all-packages-tab-content')?.classList.contains('active')) await displayAllPackages();
+                if (result.package && result.package.pickup_lat && result.package.pickup_lng) {
+                     addMarker({lat: result.package.pickup_lat, lng: result.package.pickup_lng}, `Package: ${result.package.unique_tracking_number} for ${packagePayload.recipientName}`, PACKAGE_ICON_URL, map );
+                } else if (packagePayload.pickup_lat && packagePayload.pickup_lng) { 
+                     addMarker({lat: packagePayload.pickup_lat, lng: packagePayload.pickup_lng}, `Package: ${result.unique_tracking_number} for ${packagePayload.recipientName}`, PACKAGE_ICON_URL, map );
+                }
+            } catch (err) {
+                 if (err.message !== 'Unauthorized') { console.error('[App] Error creating package:', err); alert(`Error creating package: ${err.message}`); }
+            } finally { reEnableForm(); }
         });
     } else if (newPackageForm) {
-        newPackageForm.style.display = 'none'; // Hide form if not admin
+        newPackageForm.style.display = 'none'; 
     }
 
-    const newVehicleForm = document.getElementById('new-vehicle-form'); // Assuming this ID exists
+    const newVehicleForm = document.getElementById('new-vehicle-form'); 
     if (newVehicleForm && currentPrincipalType === 'admin') {
         newVehicleForm.addEventListener('submit', async function(event) {
-            // ... (logic for adding/updating vehicles via admin - similar to newDriverForm)
-            // This would call /api/vehicles (POST or PUT)
+            event.preventDefault();
+            const mode = newVehicleForm.dataset.mode || 'add'; 
+            const plateNumberInput = document.getElementById('vehicle-plate-number');
+            const passwordInput = document.getElementById('vehicle-password'); 
+            const displayNameInput = document.getElementById('vehicle-display-name');
+            const operatorNameInput = document.getElementById('vehicle-operator-name');
+            const operatorContactInput = document.getElementById('vehicle-operator-contact');
+            const initialLatInput = document.getElementById('vehicle-initial-lat');
+            const initialLngInput = document.getElementById('vehicle-initial-lng');
+
+            const vehicleData = {
+                vehicle_plate_number: plateNumberInput.value.trim(),
+                display_name: displayNameInput.value.trim(),
+                current_operator_name: operatorNameInput.value.trim() || null,
+                operator_contact_info: operatorContactInput.value.trim() || null,
+                current_lat: initialLatInput.value ? parseFloat(initialLatInput.value) : null,
+                current_lng: initialLngInput.value ? parseFloat(initialLngInput.value) : null,
+                is_active: true 
+            };
+            if (passwordInput.value) { 
+                vehicleData.password = passwordInput.value;
+            }
+
+            if (!vehicleData.vehicle_plate_number) { alert('Vehicle Plate Number is required.'); return; }
+            if (!vehicleData.display_name) { alert('Vehicle Display Name is required.'); return; }
+            if (mode === 'add' && !vehicleData.password) { alert('Password is required for new vehicle.'); return; }
+
+
+            const formButton = newVehicleForm.querySelector('button[type="submit"]');
+            formButton.disabled = true;
+            
+            let endpoint = '/api/vehicles';
+            let method = 'POST';
+            if (mode === 'update' && editingVehicleId) {
+                endpoint = `/api/vehicles/${editingVehicleId}`;
+                method = 'PUT';
+            }
+            
+            try {
+                const response = await fetchApi(endpoint, {
+                    method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(vehicleData),
+                });
+                const result = await response.json(); 
+                if (!response.ok) throw new Error(result.error || `API error: ${response.status}`);
+                
+                alert(`Vehicle ${mode === 'add' ? 'added' : 'updated'} successfully.`);
+                newVehicleForm.reset();
+                formButton.textContent = 'Add Vehicle';
+                newVehicleForm.dataset.mode = 'add';
+                editingVehicleId = null;
+                
+                await initializeVehicleMarkers(); 
+                await populateVehicleSelect(); 
+                await displayAdminVehicleManagement(); 
+            } catch (error) {
+                if (error.message !== 'Unauthorized') { console.error(`Error ${mode} vehicle:`, error); alert(`Error ${mode} vehicle: ${error.message}`); }
+            } finally { formButton.disabled = false; }
         });
     } else if (newVehicleForm) {
         newVehicleForm.style.display = 'none';
@@ -494,15 +715,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function populatePickupLocationDropdown() {
     const pickupLocationSelect = document.getElementById('pickup-location-select');
-    if (!pickupLocationSelect) return; // Element might not be present for all roles
-    // ... (rest of the function)
+    if (!pickupLocationSelect) return; 
     const customLocationFieldsDiv = document.getElementById('custom-location-fields');
     const zipCodeInput = document.getElementById('pickup-zip-code');
-
-    if (!customLocationFieldsDiv || !zipCodeInput) {
-        console.error('[App] One or more elements for pickup location dropdown not found for custom fields.');
-        return;
-    }
+    if (!customLocationFieldsDiv || !zipCodeInput) { console.error('[App] Custom location fields not found.'); return; }
     pickupLocationSelect.innerHTML = ''; 
     try {
         const response = await fetchApi('/api/predefinedlocations'); 
@@ -518,40 +734,24 @@ async function populatePickupLocationDropdown() {
             });
         }
     } catch (error) {
-        if (error.message !== 'Unauthorized') {
-            console.error('[App] Error fetching predefined pickup locations:', error);
-            // alert('Error loading predefined pickup locations. Custom ZIP code entry will be shown.');
-        }
+        if (error.message !== 'Unauthorized') { console.error('[App] Error fetching predefined pickup locations:', error); }
         currentPredefinedLocations = []; 
     }
     const customOption = document.createElement('option');
-    customOption.value = 'custom';
-    customOption.textContent = 'Custom Location (Enter ZIP Code Below)';
+    customOption.value = 'custom'; customOption.textContent = 'Custom Location (Enter ZIP Code Below)';
     pickupLocationSelect.appendChild(customOption);
     pickupLocationSelect.addEventListener('change', function() {
-        if (this.value === 'custom') {
-            customLocationFieldsDiv.style.display = 'block';
-            zipCodeInput.required = true;
-        } else {
-            customLocationFieldsDiv.style.display = 'none';
-            zipCodeInput.required = false;
-        }
+        customLocationFieldsDiv.style.display = this.value === 'custom' ? 'block' : 'none';
+        zipCodeInput.required = this.value === 'custom';
     });
-    if (currentPredefinedLocations.length > 0) {
-        pickupLocationSelect.value = currentPredefinedLocations[0].location_id;
-    } else {
-        pickupLocationSelect.value = 'custom'; 
-    }
+    pickupLocationSelect.value = currentPredefinedLocations.length > 0 ? currentPredefinedLocations[0].location_id : 'custom';
     pickupLocationSelect.dispatchEvent(new Event('change')); 
 }
 
 
-async function populateVehicleSelect() { // Renamed from populateDriverSelect
-    const vehicleSelect = document.getElementById('vehicle-select'); // Assuming ID change
-    if (!vehicleSelect) { 
-        console.error('[App] Vehicle select dropdown not found.');
-        return;
-    }
+async function populateVehicleSelect() { 
+    const vehicleSelect = document.getElementById('vehicle-select-driverview'); 
+    if (!vehicleSelect) { console.error('[App] Vehicle select dropdown (#vehicle-select-driverview) not found.'); return; }
     let vehiclesFromApi = []; 
     try {
         const response = await fetchApi('/api/vehicles'); 
@@ -559,22 +759,18 @@ async function populateVehicleSelect() { // Renamed from populateDriverSelect
         const data = await response.json();
         vehiclesFromApi = data.vehicles || [];
     } catch (error) {
-         if (error.message !== 'Unauthorized') {
-            console.error('[App] Error fetching vehicles for select:', error);
-        }
+         if (error.message !== 'Unauthorized') { console.error('[App] Error fetching vehicles for select:', error); }
     }
     vehicleSelect.innerHTML = ''; 
     const placeholderOption = document.createElement('option');
-    placeholderOption.value = "";
-    placeholderOption.textContent = "-- Select a Vehicle --";
+    placeholderOption.value = ""; placeholderOption.textContent = "-- Select a Vehicle --";
     placeholderOption.disabled = true;
     placeholderOption.selected = !vehiclesFromApi.some(v => v.vehicle_id === parseInt(vehicleSelect.value)); 
     vehicleSelect.appendChild(placeholderOption);
-
     vehiclesFromApi.forEach(vehicle => {
         const option = document.createElement('option');
         option.value = vehicle.vehicle_id; 
-        option.textContent = vehicle.display_name || vehicle.vehicle_plate_number; // Use display name or plate
+        option.textContent = vehicle.display_name || vehicle.vehicle_plate_number; 
         if (parseInt(vehicleSelect.value) === vehicle.vehicle_id && !placeholderOption.selected) {
             option.selected = true;
         }
@@ -582,21 +778,21 @@ async function populateVehicleSelect() { // Renamed from populateDriverSelect
     });
 }
 
-async function handleVehicleSelectionChange() { // Renamed from handleDriverSelectionChange
-    const vehicleSelectElement = document.getElementById('vehicle-select'); 
+async function handleVehicleSelectionChange() { 
+    const vehicleSelectElement = document.getElementById('vehicle-select-driverview'); 
     if (!vehicleSelectElement) { console.error('[App] Vehicle select element not found.'); return; }
     const selectedVehicleId = parseInt(vehicleSelectElement.value); 
-    const vehiclePackagesList = document.getElementById('vehicle-specific-package-list'); // Assuming ID change
+    const vehiclePackagesList = document.getElementById('vehicle-specific-package-list'); 
     if (!vehiclePackagesList) { console.error('[App] Vehicle specific package list element not found.'); return; }
     
     if (isNaN(selectedVehicleId)) {
         vehiclePackagesList.innerHTML = '<li>Please select a vehicle.</li>';
-        if (driverMap) driverMap.setView([HQ_LOCATION.lat, HQ_LOCATION.lng], 7); // driverMap is vehicleMap
+        if (driverMap) driverMap.setView([HQ_LOCATION.lat, HQ_LOCATION.lng], 7); 
         if (currentVehicleViewMarker) { currentVehicleViewMarker.remove(); currentVehicleViewMarker = null; }
         return;
     }
 
-    const vehicleDetails = vehicleMarkers.find(v => v.id === selectedVehicleId); // Use vehicleMarkers
+    const vehicleDetails = vehicleMarkers.find(v => v.id === selectedVehicleId); 
     if (vehicleDetails && vehicleDetails.marker) { 
         if (!driverMap || typeof driverMap.addLayer !== 'function') { 
             await initVehicleMap(); 
@@ -643,18 +839,41 @@ async function handleVehicleSelectionChange() { // Renamed from handleDriverSele
             const packageIdForActions = pkg.package_id; 
             const packageCodeForAlerts = pkg.unique_tracking_number;
 
-            // Buttons for 'vehicle' type to accept/decline
             if (pkg.status === 'assigned' && currentPrincipalType === 'vehicle' && currentPrincipalInfo && currentPrincipalInfo.vehicleId === selectedVehicleId) {
-                const acceptBtn = document.createElement('button'); /* ... as before ... */ 
+                const acceptBtn = document.createElement('button'); 
                 acceptBtn.textContent = 'Accept'; acceptBtn.style.marginLeft = '5px'; acceptBtn.style.marginTop = '5px';
                 acceptBtn.dataset.packageId = packageIdForActions;
-                acceptBtn.onclick = async function() { /* ... API call to set status to 'accepted_by_driver' ... then refresh lists */ };
+                acceptBtn.onclick = async function() { 
+                     try {
+                        const response = await fetchApi(`/api/packages/${this.dataset.packageId}`, {
+                            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'accepted_by_driver' })
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || `API error: ${response.status}`);
+                        alert(`Package ${packageCodeForAlerts} accepted.`);
+                        await handleVehicleSelectionChange(); 
+                        if (document.getElementById('all-packages-tab-content')?.classList.contains('active')) await displayAllPackages();
+                    } catch (err) { if (err.message !== 'Unauthorized') { console.error('Error accepting package:', err); alert(`Error: ${err.message}`);}}
+                };
                 listItem.appendChild(acceptBtn);
 
-                const declineBtn = document.createElement('button'); /* ... as before ... */
+                const declineBtn = document.createElement('button');
                 declineBtn.textContent = 'Decline'; declineBtn.style.marginLeft = '5px'; declineBtn.style.marginTop = '5px';
                 declineBtn.dataset.packageId = packageIdForActions;
-                declineBtn.onclick = async function() { /* ... API call to set status to 'declined_by_driver', assigned_vehicle_id to null ... then refresh lists */};
+                declineBtn.onclick = async function() { 
+                    try {
+                        const response = await fetchApi(`/api/packages/${this.dataset.packageId}`, {
+                            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'declined_by_driver' }) 
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || `API error: ${response.status}`);
+                        alert(`Package ${packageCodeForAlerts} declined.`);
+                        await handleVehicleSelectionChange();
+                        if (document.getElementById('all-packages-tab-content')?.classList.contains('active')) await displayAllPackages();
+                    } catch (err) { if (err.message !== 'Unauthorized') { console.error('Error declining package:', err); alert(`Error: ${err.message}`);}}
+                };
                 listItem.appendChild(declineBtn);
             }
             vehiclePackagesList.appendChild(listItem);
@@ -682,8 +901,8 @@ function addMarker(location, title, iconUrl, targetMapInstance) {
             iconUrl: iconUrl,
             iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] 
         });
-    } else { // Default Leaflet icon if no URL
-         markerOptions.icon = L.icon({ // Provide default icon paths
+    } else { 
+         markerOptions.icon = L.icon({ 
             iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
             iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
             shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -695,7 +914,7 @@ function addMarker(location, title, iconUrl, targetMapInstance) {
     return leafletMarker; 
 }
 
-async function initializeVehicleMarkers() { // Renamed from initializeDrivers
+async function initializeVehicleMarkers() { 
     if (!map || typeof map.addLayer !== 'function') { 
         return;
     }
@@ -711,7 +930,7 @@ async function initializeVehicleMarkers() { // Renamed from initializeDrivers
         }
     }
     
-    vehicleMarkers.forEach(vm => { // Use vehicleMarkers
+    vehicleMarkers.forEach(vm => { 
         if (vm.marker && typeof vm.marker.remove === 'function') vm.marker.remove();
     });
     vehicleMarkers = []; 
@@ -732,9 +951,6 @@ async function initializeVehicleMarkers() { // Renamed from initializeDrivers
     console.log('[App] Vehicle markers (from API) initialized on main map.');
 }
 
-function simulateDriverMovement() { /* This function is likely deprecated or needs vehicle logic */ }
-
-// This function is no longer called by the package form, but kept for potential other uses.
 function geocodeWithNominatim(zipCode, country, callback) {
     const queryParams = new URLSearchParams({
         format: 'json', postalcode: zipCode, country: country, limit: 1
@@ -770,5 +986,17 @@ function geocodeWithNominatim(zipCode, country, callback) {
         callback(`Geocoding request failed: ${error.message}. Please try again later.`, null);
     });
 }
+
+[end of public/app.js]
+
+[end of public/app.js]
+
+[end of public/app.js]
+
+[end of public/app.js]
+
+[end of public/app.js]
+
+[end of public/app.js]
 
 [end of public/app.js]
